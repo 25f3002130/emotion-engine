@@ -1,0 +1,12 @@
+CompileFlags:
+  Add: [
+    -std=c++17,
+    -Iinclude,
+    -isystem, /usr/include/x86_64-linux-gnu/qt6,
+    -isystem, /usr/include/x86_64-linux-gnu/qt6/QtWidgets,
+    -isystem, /usr/include/x86_64-linux-gnu/qt6/QtGui,
+    -isystem, /usr/include/x86_64-linux-gnu/qt6/QtCore,
+    -DQT_WIDGETS_LIB,
+    -DQT_GUI_LIB,
+    -DQT_CORE_LIB
+  ]

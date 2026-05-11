@@ -1,0 +1,12 @@
+-xc++
+-std=c++17
+-I/home/dialgga/emotion-engine/include
+-I/usr/include/x86_64-linux-gnu/qt6
+-I/usr/include/x86_64-linux-gnu/qt6/QtWidgets
+-I/usr/include/x86_64-linux-gnu/qt6/QtGui
+-I/usr/include/x86_64-linux-gnu/qt6/QtCore
+-DQT_WIDGETS_LIB
+-DQT_GUI_LIB
+-DQT_CORE_LIB
+-Wall
+-pthread
