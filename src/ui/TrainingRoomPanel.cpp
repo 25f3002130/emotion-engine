@@ -109,26 +109,34 @@ TrainingRoomPanel::createModelSelector(const std::vector<ModelInfo> &models) {
   } else {
     auto createCard = [](const ModelInfo &model, bool active) {
       QFrame *c = new QFrame();
-      c->setFixedHeight(55);
-      QString border = active ? "1px solid #cfbcff" : "1px solid #25232a";
+      c->setFixedHeight(65);
+      QString border = active ? "2px solid #cfbcff" : "1px solid #25232a";
       c->setStyleSheet(
-          QString("background-color: #1d1b20; border: %1; border-radius: 8px;")
+          QString("QFrame { background-color: #1d1b20; border: %1; border-radius: 10px; }")
               .arg(border));
       QHBoxLayout *cl = new QHBoxLayout(c);
+      cl->setContentsMargins(15, 0, 15, 0);
+      cl->setSpacing(12);
 
       QLabel *icon = new QLabel(model.is_experimental ? "⌬" : "◈");
-      icon->setStyleSheet(QString("font-size: 18px; color: %1; border: none; "
+      icon->setFixedWidth(24);
+      icon->setStyleSheet(QString("font-size: 22px; color: %1; border: none; "
                                   "background: transparent;")
                               .arg(active ? "#cfbcff" : "#938f99"));
       cl->addWidget(icon);
 
       QVBoxLayout *vl = new QVBoxLayout();
+      vl->setContentsMargins(0, 0, 0, 0);
+      vl->setSpacing(2);
+      
       QLabel *n = new QLabel(QString::fromStdString(model.name));
-      n->setStyleSheet("font-weight: bold; font-size: 11px; color: #ffffff; "
+      n->setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff; "
                        "border: none; background: transparent;");
+      
       QLabel *d = new QLabel(QString::fromStdString(model.description));
-      d->setStyleSheet("font-size: 8px; color: #938f99; border: none; "
+      d->setStyleSheet("font-size: 10px; color: #938f99; border: none; "
                        "text-transform: uppercase; background: transparent;");
+      
       vl->addWidget(n);
       vl->addWidget(d);
       cl->addLayout(vl);

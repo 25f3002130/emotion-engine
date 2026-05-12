@@ -3,34 +3,32 @@
 
 #include <string>
 #include <vector>
+#include "core/HardwareMonitor.h"
 
 namespace emotion {
 
 struct ModelInfo {
     std::string name;
-    std::string description;
     std::string path;
+    std::string description;
     bool is_experimental;
 };
 
 struct AuditResult {
-    bool integrity_pass;
-    bool update_available;
-    std::string latest_version;
-    std::vector<ModelInfo> available_models;
-    std::vector<std::string> errors;
+    std::string os_info;
+    std::string qt_version;
+    bool integrity_passed;
+    std::vector<std::string> missing_files;
+    std::vector<ModelInfo> models_found;
 };
 
 class SystemAudit {
 public:
     static AuditResult performFullAudit();
-
-private:
-    static bool checkIntegrity(std::vector<std::string>& errors);
-    static bool checkForUpdates(std::string& latest);
+    static bool verifyIntegrity(std::vector<std::string>& missing);
     static std::vector<ModelInfo> discoverModels();
 };
 
 } // namespace emotion
 
-#endif // SYSTEM_AUDIT_H
+#endif

@@ -1,10 +1,10 @@
 #include "core/SystemAudit.h"
+#include "core/Logger.h"
 #include <filesystem>
 #include <iostream>
 #include <fstream>
-#include <thread>
-#include <chrono>
 #include <cstdlib>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -20,57 +20,94 @@ AuditResult SystemAudit::performFullAudit() {
 }
 
 bool SystemAudit::verifyIntegrity(std::vector<std::string>& missing) {
-    // We'll be more lenient here for the portable version
     std::vector<std::string> critical = {"data", "configs"};
-    bool passed = true;
     for (const auto& f : critical) {
-        if (!fs::exists(f)) {
-            missing.push_back(f);
-            passed = false;
-        }
+        if (!fs::exists(f)) missing.push_back(f);
     }
-    return true; // Return true to allow launch even if folders are missing (we will create them)
+    return true; 
 }
 
 std::vector<ModelInfo> SystemAudit::discoverModels() {
     std::vector<ModelInfo> models;
     std::vector<fs::path> search_paths;
 
-    // 1. Local App Directory
-    search_paths.push_back("data/models");
-
-    // 2. Global Paths (Ollama, LM Studio, Downloads)
     const char* home = std::getenv("HOME");
     const char* userprofile = std::getenv("USERPROFILE");
 
+    // 1. Core Paths
+    search_paths.push_back("data/models");
     if (home) {
-        search_paths.push_back(fs::path(home) / ".ollama/models");
-        search_paths.push_back(fs::path(home) / ".cache/lm-studio/models");
         search_paths.push_back(fs::path(home) / "Downloads");
+        search_paths.push_back(fs::path(home) / "models");
+        search_paths.push_back(fs::path(home) / "ai");
+        search_paths.push_back(fs::path(home) / ".cache/lm-studio/models");
     }
     if (userprofile) {
-        search_paths.push_back(fs::path(userprofile) / ".ollama/models");
         search_paths.push_back(fs::path(userprofile) / "Downloads");
-        search_paths.push_back(fs::path(userprofile) / "AppData/Local/lm-studio/models");
+        search_paths.push_back(fs::path(userprofile) / "Documents/AI");
     }
+
+    LOG_INFO("[SCAN] Initiating Deep Neural Search...");
 
     for (const auto& path : search_paths) {
         if (!fs::exists(path)) continue;
 
         try {
-            for (const auto& entry : fs::recursive_directory_iterator(path)) {
-                if (entry.is_regular_file() && (entry.path().extension() == ".gguf" || entry.path().extension() == ".bin")) {
-                    ModelInfo info;
-                    info.name = entry.path().stem().string();
-                    info.path = entry.path().string();
-                    info.description = "Discovered in: " + entry.path().parent_path().filename().string();
-                    info.is_experimental = false;
-                    models.push_back(info);
+            // Non-recursive scan for Downloads to avoid huge wait times, recursive for others
+            bool recursive = (path.filename() != "Downloads");
+            
+            auto handle_entry = [&](const fs::directory_entry& entry) {
+                if (entry.is_regular_file()) {
+                    std::string ext = entry.path().extension().string();
+                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
                     
-                    if (models.size() > 10) break; // Limit discovery for performance
+                    if (ext == ".gguf" || ext == ".bin" || ext == ".pth") {
+                        ModelInfo info;
+                        info.name = entry.path().stem().string();
+                        if (info.name.empty()) info.name = "Unknown Neural Weights";
+                        
+                        info.path = entry.path().string();
+                        info.description = "Found in: " + entry.path().parent_path().filename().string();
+                        info.is_experimental = (info.name.find("exp") != std::string::npos);
+                        
+                        LOG_INFO("[SCAN] Indexed Model: " + info.name + " (" + ext + ")");
+                        models.push_back(info);
+                    }
+                }
+            };
+
+            if (recursive) {
+                for (const auto& entry : fs::recursive_directory_iterator(path)) {
+                    handle_entry(entry);
+                    if (models.size() > 50) break;
+                }
+            } else {
+                for (const auto& entry : fs::directory_iterator(path)) {
+                    handle_entry(entry);
                 }
             }
-        } catch (...) { /* Skip protected directories */ }
+        } catch (...) {}
+    }
+
+    // Add Ollama logic as a secondary layer
+    if (home) {
+        fs::path ollama_manifests = fs::path(home) / ".ollama/models/manifests/registry.ollama.ai/library";
+        if (fs::exists(ollama_manifests)) {
+            try {
+                for (const auto& entry : fs::directory_iterator(ollama_manifests)) {
+                    if (entry.is_directory()) {
+                        for (const auto& sub : fs::directory_iterator(entry.path())) {
+                            ModelInfo info;
+                            info.name = entry.path().filename().string() + ":" + sub.path().filename().string();
+                            info.path = sub.path().string();
+                            info.description = "Ollama Library";
+                            info.is_experimental = false;
+                            models.push_back(info);
+                        }
+                    }
+                }
+            } catch (...) {}
+        }
     }
 
     return models;
