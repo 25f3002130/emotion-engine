@@ -5,8 +5,16 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
-#include <QtWidgets/QScrollArea>
+#include <QtWidgets/QProgressBar>
 #include <QtWidgets/QFrame>
+#include <QtWidgets/QTextEdit>
+#include <QtCore/QTimer>
+#include <QtGui/QPaintEvent>
+#include <QtGui/QPainter>
+#include <QtGui/QPainterPath>
+#include "core/SystemAudit.h"
+
+#include "ui/EmotionSelectorDialog.h"
 
 namespace emotion {
 
@@ -14,14 +22,33 @@ class DashboardPanel : public QWidget {
     Q_OBJECT
 
 public:
-    DashboardPanel(QWidget *parent = nullptr);
+    DashboardPanel(const std::vector<ModelInfo>& models, QWidget *parent = nullptr);
+
+private slots:
+    void updateWaveform();
+    void openEmotionSelector();
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void setupUI();
-    QFrame* createModelCard(const QString& name, const QString& status, bool active);
-    QFrame* createEmotionCard(const QString& name, const QString& desc, const QString& color);
+    
+    // UI Helpers
+    QWidget* createHeader();
+    QFrame* createModelSelector(const std::vector<ModelInfo>& models);
+    QFrame* createEmotionLibrary();
+    QFrame* createPrerequisites();
+    QFrame* createWaveformPreview();
+    QFrame* createSummaryCard();
+    QFrame* createTerminal();
 
-    QVBoxLayout *mainLayout;
+    // Components
+    QFrame *waveformCanvas;
+    QTextEdit *terminalOutput;
+    QTimer *waveTimer;
+    float waveOffset = 0.0f;
+    std::vector<ModelInfo> availableModels;
 };
 
 } // namespace emotion

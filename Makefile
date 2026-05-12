@@ -14,20 +14,23 @@ CORE_SOURCES = src/training/TrainingManager.cpp \
                src/core/Logger.cpp \
                src/core/Config.cpp \
                src/core/DataManager.cpp \
-               src/core/HardwareMonitor.cpp
+               src/core/HardwareMonitor.cpp \
+               src/core/SystemAudit.cpp
 
 # UI Headers that need MOC
 UI_HEADERS = include/ui/MainWindow.h \
              include/ui/DashboardPanel.h \
              include/ui/TrainingRoomPanel.h \
              include/ui/LogsMatrixPanels.h \
-             include/ui/SplashScreen.h
+             include/ui/SplashScreen.h \
+             include/ui/EmotionSelectorDialog.h
 
 # UI Sources
 UI_SOURCES = src/ui/MainWindow.cpp \
              src/ui/DashboardPanel.cpp \
              src/ui/TrainingRoomPanel.cpp \
              src/ui/SplashScreen.cpp \
+             src/ui/EmotionSelectorDialog.cpp \
              src/main.cpp
 
 # MOC Generated Sources

@@ -12,6 +12,7 @@
 #include <QtGui/QPaintEvent>
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
+#include "core/SystemAudit.h"
 
 namespace emotion {
 
@@ -19,7 +20,7 @@ class TrainingRoomPanel : public QWidget {
     Q_OBJECT
 
 public:
-    TrainingRoomPanel(QWidget *parent = nullptr);
+    TrainingRoomPanel(const std::vector<ModelInfo>& models, QWidget *parent = nullptr);
 
 private slots:
     void updateWaveform();
@@ -32,7 +33,7 @@ private:
     
     // UI Helpers
     QWidget* createHeader();
-    QFrame* createModelSelector();
+    QFrame* createModelSelector(const std::vector<ModelInfo>& models);
     QFrame* createEmotionLibrary();
     QFrame* createPrerequisites();
     QFrame* createWaveformPreview();
@@ -44,6 +45,7 @@ private:
     QTextEdit *terminalOutput;
     QTimer *waveTimer;
     float waveOffset = 0.0f;
+    std::vector<ModelInfo> availableModels;
 };
 
 } // namespace emotion

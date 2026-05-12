@@ -3,6 +3,7 @@
 #include "core/Logger.h"
 #include "core/Config.h"
 #include "core/HardwareMonitor.h"
+#include "core/SystemAudit.h"
 #include "ui/MainWindow.h"
 #include "ui/SplashScreen.h"
 #include <iostream>
@@ -24,49 +25,62 @@ int main(int argc, char *argv[]) {
     emotion::SplashScreen splash;
     splash.show();
 
-    // 2. Perform Hardware Audit
-    emotion::HardwareSpecs specs = emotion::HardwareMonitor::scan();
-    LOG_INFO("[HARDWARE] CPU: " + specs.cpu_model);
-    LOG_INFO("[HARDWARE] GPU: " + specs.gpu_info);
-    LOG_INFO("[HARDWARE] RAM: " + std::to_string(specs.total_ram_mb) + " MB");
+    // 2. TASK: Deep Hardware Audit (0-30%)
+    splash.setProgress(10, "Detecting hardware architecture...");
+    emotion::HardwareSpecs hw = emotion::HardwareMonitor::scan();
+    QThread::msleep(800); // Cinematic pause
+    
+    splash.setProgress(20, "Identified GPU: " + QString::fromStdString(hw.gpu_info));
+    LOG_INFO("[SYSTEM] OS: " + hw.os_info);
+    LOG_INFO("[SYSTEM] Qt Version: " + hw.qt_version);
+    QThread::msleep(800);
 
-    // 3. Simulate Neural Initialization (Slower for heavyweight feel)
-    QStringList steps = {
-        "Detecting system architecture...",
-        "Auditing CPU cores...",
-        "Identifying Graphics Hardware...",
-        "Found GPU: " + QString::fromStdString(specs.gpu_info),
-        "Validating neural compatibility...",
-        "Allocating VRAM buffers...",
-        "Initializing core subsystems...",
-        "Loading SENTI-9 neural foundation...",
-        "Calibrating emotional vectors...",
-        "Synchronizing with EPU...",
-        "Verifying neural integrity...",
-        "Finalizing environment..."
-    };
+    splash.setProgress(30, "System Scoring: " + QString::number(hw.training_score * 100, 'f', 1) + "% Efficiency");
+    QThread::msleep(500);
 
-    for (int i = 0; i <= 100; ++i) {
-        int stepIdx = (i / (100 / steps.size() + 1));
-        if (stepIdx >= steps.size()) stepIdx = steps.size() - 1;
-        splash.setProgress(i, steps[stepIdx]);
-        QThread::msleep(100); // Slower pacing (approx 10 seconds total)
+    // 3. TASK: System Integrity & Update Check (30-70%)
+    splash.setProgress(45, "Verifying file integrity...");
+    emotion::AuditResult audit = emotion::SystemAudit::performFullAudit();
+    QThread::msleep(1000);
+
+    if (!audit.integrity_pass) {
+        LOG_INFO("[CRITICAL] Integrity Check Failed!");
+        for (const auto& err : audit.errors) LOG_INFO(" >> " + err);
     }
 
-    // Initialize Core Systems in background
+    splash.setProgress(60, "Checking for updates on GitHub...");
+    QThread::msleep(1200); // Network simulation
+    if (audit.update_available) {
+        splash.setProgress(65, "Update found: " + QString::fromStdString(audit.latest_version));
+    } else {
+        splash.setProgress(65, "Software is up to date (v4.0.2)");
+    }
+    QThread::msleep(800);
+
+    // 4. TASK: Neural Initialization (70-100%)
+    splash.setProgress(75, "Loading previously trained models...");
+    LOG_INFO("[DATA] Discovered " + std::to_string(audit.available_models.size()) + " neural weight sets.");
+    QThread::msleep(1000);
+
+    splash.setProgress(85, "Calibrating emotional vectors...");
     auto& config = emotion::Config::getInstance();
     config.load("configs/default_config.json");
+    QThread::msleep(1200);
+
+    splash.setProgress(95, "Synchronizing with EPU...");
+    emotion::TrainingManager manager;
+    manager.addModel(std::make_unique<emotion::SENTI9>());
+    QThread::msleep(1000);
+
+    splash.setProgress(100, "Initialization Complete.");
+    QThread::msleep(500);
 
     LOG_INFO("========================================");
     LOG_INFO("      EMOTION ENGINE v4.0.2 STARTING    ");
     LOG_INFO("========================================");
 
-    // Initialize Backend Training Engine
-    emotion::TrainingManager manager;
-    manager.addModel(std::make_unique<emotion::SENTI9>());
-
     // 4. Launch Main Application
-    emotion::MainWindow window;
+    emotion::MainWindow window(audit.available_models);
     splash.hide();
     window.show();
 

@@ -11,7 +11,8 @@
 
 namespace emotion {
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+MainWindow::MainWindow(const std::vector<ModelInfo>& models, QWidget *parent) 
+    : QMainWindow(parent), discoveredModels(models) {
     setWindowTitle("EMOTION ENGINE v4.0.2");
     resize(1400, 900);
     setupUI();
@@ -33,73 +34,82 @@ void MainWindow::setupUI() {
 
     // --- SIDEBAR ---
     QWidget *sidebar = new QWidget();
-    sidebar->setFixedWidth(240);
-    sidebar->setStyleSheet("background-color: #141218; border-right: 1px solid #25232a;");
+    sidebar->setFixedWidth(260);
+    sidebar->setStyleSheet(
+        "QWidget { background-color: #0d0c10; border-right: 1px solid #1d1b20; }"
+    );
     QVBoxLayout *sideLayout = new QVBoxLayout(sidebar);
-    sideLayout->setContentsMargins(0, 30, 0, 30);
-    sideLayout->setSpacing(5);
+    sideLayout->setContentsMargins(15, 40, 15, 30);
+    sideLayout->setSpacing(8);
 
     // Logo Section
     QLabel *logo = new QLabel("EMOTION ENGINE");
-    logo->setStyleSheet("font-weight: bold; font-size: 18px; color: #ffffff; padding: 0 20px; letter-spacing: 1px;");
+    logo->setStyleSheet("font-weight: 900; font-size: 22px; color: #ffffff; letter-spacing: 2px; margin-bottom: 0px;");
     sideLayout->addWidget(logo);
-    QLabel *version = new QLabel("v4.0.2 Operational");
-    version->setStyleSheet("font-size: 10px; color: #938f99; padding: 0 20px 20px 20px;");
+    QLabel *version = new QLabel("V4.0.2 OPERATIONAL");
+    version->setStyleSheet("font-size: 9px; color: #cfbcff; font-weight: bold; margin-bottom: 30px; letter-spacing: 1px;");
     sideLayout->addWidget(version);
 
-    // Group buttons to ensure only one is active at a time
     QButtonGroup *navGroup = new QButtonGroup(this);
     navGroup->setExclusive(true);
 
-    // Navigation Buttons
+    // Enhanced Navigation Buttons
     auto createNavBtn = [this, navGroup](const QString& text, int index) {
         QPushButton *btn = new QPushButton(text);
         btn->setCheckable(true);
-        btn->setFixedHeight(45);
+        btn->setFixedHeight(50);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setStyleSheet(
-            "QPushButton { text-align: left; padding-left: 20px; border: none; font-size: 11px; font-weight: bold; color: #938f99; text-transform: uppercase; letter-spacing: 1px; }"
-            "QPushButton:hover { background-color: #1d1b20; color: #ffffff; }"
-            "QPushButton:checked { background-color: rgba(207, 188, 255, 0.1); color: #cfbcff; border-right: 3px solid #cfbcff; }"
+            "QPushButton { text-align: left; padding-left: 20px; border: 1px solid transparent; border-radius: 8px; font-size: 11px; font-weight: bold; color: #938f99; text-transform: uppercase; letter-spacing: 1px; }"
+            "QPushButton:hover { background-color: #141218; color: #ffffff; border: 1px solid #25232a; }"
+            "QPushButton:checked { background-color: #1d1b20; color: #cfbcff; border: 1px solid rgba(207, 188, 255, 0.2); }"
         );
         connect(btn, &QPushButton::clicked, [this, index]() { stack->setCurrentIndex(index); });
         navGroup->addButton(btn);
         return btn;
     };
 
-    sideLayout->addWidget(createNavBtn("⊞ Dashboard", 0));
-    QPushButton *trainBtn = createNavBtn("⌬ Training Room", 1);
-    trainBtn->setChecked(true); // Default
-    sideLayout->addWidget(trainBtn);
+    QPushButton *dashBtn = createNavBtn("⊞ Dashboard", 0);
+    dashBtn->setChecked(true);
+    sideLayout->addWidget(dashBtn);
+    
+    sideLayout->addWidget(createNavBtn("⌬ Training Room", 1));
     sideLayout->addWidget(createNavBtn("📊 Evolution Logs", 2));
     sideLayout->addWidget(createNavBtn("💠 Emotion Matrix", 3));
     
     sideLayout->addStretch();
 
-    // Bottom Action
-    QPushButton *initBtn = new QPushButton("Initialize Training");
-    initBtn->setFixedHeight(40);
-    initBtn->setContentsMargins(20, 0, 20, 0);
+    // Initialize Button Overhaul
+    QPushButton *initBtn = new QPushButton("INITIALIZE TRAINING");
+    initBtn->setFixedHeight(45);
     initBtn->setStyleSheet(
-        "QPushButton { background-color: #cfbcff; color: #381e72; border-radius: 4px; font-weight: bold; margin: 0 20px; }"
+        "QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #cfbcff, stop:1 #b69df8); color: #381e72; border-radius: 8px; font-weight: 900; font-size: 11px; letter-spacing: 1px; border: none; }"
         "QPushButton:hover { background-color: #eaddff; }"
+        "QPushButton:pressed { background-color: #b69df8; }"
     );
     sideLayout->addWidget(initBtn);
     
-    sideLayout->addSpacing(20);
-    sideLayout->addWidget(createNavBtn("⚙ Neural Settings [In Progress]", 4));
-    sideLayout->addWidget(createNavBtn("⌨ API Access [In Progress]", 5));
+    sideLayout->addSpacing(25);
+    
+    auto createInProgBtn = [&](const QString& text) {
+        QLabel *l = new QLabel(text);
+        l->setStyleSheet("color: #49454f; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-left: 20px; letter-spacing: 1px;");
+        return l;
+    };
+    
+    sideLayout->addWidget(createInProgBtn("⚙ Neural Settings [In Progress]"));
+    sideLayout->addWidget(createInProgBtn("⌨ API Access [In Progress]"));
 
     mainLayout->addWidget(sidebar);
 
     // --- CONTENT AREA ---
     stack = new QStackedWidget();
-    dashPanel = new DashboardPanel();
-    trainPanel = new TrainingRoomPanel();
+    dashPanel = new DashboardPanel(discoveredModels);
+    trainPanel = new TrainingRoomPanel(discoveredModels); // Keep it for now, or replace later
     
     stack->addWidget(dashPanel);
     stack->addWidget(trainPanel);
-    stack->setCurrentIndex(1); // Start at Training Hub to match your image
+    stack->setCurrentIndex(0); // Launch directly into the Dashboard (Training Hub)
 
     mainLayout->addWidget(stack);
 }

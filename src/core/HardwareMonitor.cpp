@@ -7,10 +7,12 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+#include <QtCore/QtGlobal>
+#include <QtCore/QString>
 
 namespace emotion {
 
-std::string exec(const char* cmd) {
+std::string exec_cmd(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -26,28 +28,17 @@ HardwareSpecs HardwareMonitor::scan() {
     specs.cpu_model = getCPUModel();
     specs.cpu_cores = getCPUCores();
     specs.total_ram_mb = getTotalRAM();
-    
-    // GPU Detection via lspci
-    std::string gpu_raw = exec("lspci | grep -E 'VGA|3D'");
-    if (gpu_raw.empty()) {
-        specs.gpu_info = "Integrated Graphics (Generic)";
-    } else {
-        // Simple parsing of lspci output
-        size_t pos = gpu_raw.find("controller: ");
-        if (pos != std::string::npos) {
-            specs.gpu_info = gpu_raw.substr(pos + 12);
-        } else {
-            specs.gpu_info = gpu_raw;
-        }
-        // Trim newline
-        specs.gpu_info.erase(std::remove(specs.gpu_info.begin(), specs.gpu_info.end(), '\n'), specs.gpu_info.end());
-    }
+    specs.gpu_info = getGPUInfo();
+    specs.os_info = getOSInfo();
+    specs.qt_version = getQtVersion();
 
-    specs.training_score = calculateScore(specs.cpu_cores, specs.total_ram_mb);
+    // Scoring logic: 16 cores + 32GB RAM + Dedicated GPU = 1.0
+    float core_score = std::min(1.0f, static_cast<float>(specs.cpu_cores) / 16.0f);
+    float ram_score = std::min(1.0f, static_cast<float>(specs.total_ram_mb) / 32768.0f);
+    specs.training_score = (core_score * 0.4f) + (ram_score * 0.3f);
     
-    // Boost score if dedicated GPU is found (Simplified check)
     if (specs.gpu_info.find("NVIDIA") != std::string::npos || specs.gpu_info.find("AMD") != std::string::npos) {
-        specs.training_score = std::min(1.0f, specs.training_score + 0.2f);
+        specs.training_score += 0.3f;
     }
 
     specs.estimated_minutes = static_cast<int>(60.0f * (1.5f - specs.training_score));
@@ -94,10 +85,29 @@ long HardwareMonitor::getTotalRAM() {
     return 4096;
 }
 
-float HardwareMonitor::calculateScore(int cores, long ram) {
-    float core_score = std::min(1.0f, static_cast<float>(cores) / 16.0f);
-    float ram_score = std::min(1.0f, static_cast<float>(ram) / 32768.0f);
-    return (core_score * 0.6f) + (ram_score * 0.4f);
+std::string HardwareMonitor::getGPUInfo() {
+    std::string gpu_raw = exec_cmd("lspci | grep -E 'VGA|3D'");
+    if (gpu_raw.empty()) return "Integrated Graphics";
+    size_t pos = gpu_raw.find("controller: ");
+    std::string info = (pos != std::string::npos) ? gpu_raw.substr(pos + 12) : gpu_raw;
+    info.erase(std::remove(info.begin(), info.end(), '\n'), info.end());
+    return info;
+}
+
+std::string HardwareMonitor::getOSInfo() {
+    std::ifstream file("/etc/os-release");
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.find("PRETTY_NAME=") != std::string::npos) {
+            size_t pos = line.find("=");
+            return line.substr(pos + 2, line.length() - pos - 3);
+        }
+    }
+    return "Linux Generic";
+}
+
+std::string HardwareMonitor::getQtVersion() {
+    return QString(QT_VERSION_STR).toStdString();
 }
 
 } // namespace emotion
