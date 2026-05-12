@@ -27,6 +27,7 @@ public:
 private slots:
     void updateWaveform();
     void openEmotionSelector();
+    void onStartTraining();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

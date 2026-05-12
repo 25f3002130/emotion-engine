@@ -1,22 +1,35 @@
 #include "core/HardwareMonitor.h"
+#include <iostream>
 #include <fstream>
 #include <sstream>
-#include <iostream>
-#include <algorithm>
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
 #include <array>
-#include <QtCore/QtGlobal>
-#include <QtCore/QString>
+#include <QString>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <intrin.h>
+#elif __APPLE__
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#else
+#include <unistd.h>
+#include <sys/sysinfo.h>
+#endif
 
 namespace emotion {
 
 std::string exec_cmd(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
+#ifdef _WIN32
+    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+#else
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) return "";
+#endif
+    if (!pipe) return "Unknown";
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
     }
@@ -25,89 +38,76 @@ std::string exec_cmd(const char* cmd) {
 
 HardwareSpecs HardwareMonitor::scan() {
     HardwareSpecs specs;
-    specs.cpu_model = getCPUModel();
-    specs.cpu_cores = getCPUCores();
-    specs.total_ram_mb = getTotalRAM();
-    specs.gpu_info = getGPUInfo();
-    specs.os_info = getOSInfo();
-    specs.qt_version = getQtVersion();
+    specs.os_version = "Unknown OS";
+    specs.cpu_model = "Unknown CPU";
+    specs.total_ram_mb = 0;
+    specs.gpu_model = "Integrated/Unknown";
+    specs.training_score = 0.5f;
 
-    // Scoring logic: 16 cores + 32GB RAM + Dedicated GPU = 1.0
-    float core_score = std::min(1.0f, static_cast<float>(specs.cpu_cores) / 16.0f);
-    float ram_score = std::min(1.0f, static_cast<float>(specs.total_ram_mb) / 32768.0f);
-    specs.training_score = (core_score * 0.4f) + (ram_score * 0.3f);
+#ifdef _WIN32
+    // Windows Detection
+    specs.os_version = "Windows (Modern)";
     
-    if (specs.gpu_info.find("NVIDIA") != std::string::npos || specs.gpu_info.find("AMD") != std::string::npos) {
-        specs.training_score += 0.3f;
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof(status);
+    if (GlobalMemoryStatusEx(&status)) {
+        specs.total_ram_mb = status.ullTotalPhys / (1024 * 1024);
     }
 
-    specs.estimated_minutes = static_cast<int>(60.0f * (1.5f - specs.training_score));
+    // Basic CPU via registry or wmic
+    specs.cpu_model = exec_cmd("wmic cpu get name /format:list");
+    specs.gpu_model = exec_cmd("wmic path win32_VideoController get name /format:list");
+
+#elif __APPLE__
+    // macOS Detection
+    specs.os_version = "macOS (Darwin)";
     
-    return specs;
-}
+    int64_t mem;
+    size_t len = sizeof(mem);
+    sysctlbyname("hw.memsize", &mem, &len, NULL, 0);
+    specs.total_ram_mb = mem / (1024 * 1024);
 
-std::string HardwareMonitor::getCPUModel() {
-    std::ifstream file("/proc/cpuinfo");
+    char cpu_brand[256];
+    len = sizeof(cpu_brand);
+    sysctlbyname("machdep.cpu.brand_string", &cpu_brand, &len, NULL, 0);
+    specs.cpu_model = cpu_brand;
+    specs.gpu_model = "Apple Silicon / Metal Core";
+
+#else
+    // Linux Detection (Current)
+    std::ifstream os_file("/etc/os-release");
     std::string line;
-    while (std::getline(file, line)) {
-        if (line.find("model name") != std::string::npos) {
-            size_t pos = line.find(":");
-            if (pos != std::string::npos) {
-                return line.substr(pos + 2);
-            }
-        }
-    }
-    return "Generic CPU";
-}
-
-int HardwareMonitor::getCPUCores() {
-    std::ifstream file("/proc/cpuinfo");
-    std::string line;
-    int cores = 0;
-    while (std::getline(file, line)) {
-        if (line.find("processor") != std::string::npos) {
-            cores++;
-        }
-    }
-    return cores > 0 ? cores : 1;
-}
-
-long HardwareMonitor::getTotalRAM() {
-    std::ifstream file("/proc/meminfo");
-    std::string line;
-    if (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string label;
-        long kb;
-        ss >> label >> kb;
-        return kb / 1024;
-    }
-    return 4096;
-}
-
-std::string HardwareMonitor::getGPUInfo() {
-    std::string gpu_raw = exec_cmd("lspci | grep -E 'VGA|3D'");
-    if (gpu_raw.empty()) return "Integrated Graphics";
-    size_t pos = gpu_raw.find("controller: ");
-    std::string info = (pos != std::string::npos) ? gpu_raw.substr(pos + 12) : gpu_raw;
-    info.erase(std::remove(info.begin(), info.end(), '\n'), info.end());
-    return info;
-}
-
-std::string HardwareMonitor::getOSInfo() {
-    std::ifstream file("/etc/os-release");
-    std::string line;
-    while (std::getline(file, line)) {
+    while (std::getline(os_file, line)) {
         if (line.find("PRETTY_NAME=") != std::string::npos) {
-            size_t pos = line.find("=");
-            return line.substr(pos + 2, line.length() - pos - 3);
+            specs.os_version = line.substr(13, line.length() - 14);
+            break;
         }
     }
-    return "Linux Generic";
-}
 
-std::string HardwareMonitor::getQtVersion() {
-    return QString(QT_VERSION_STR).toStdString();
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        specs.total_ram_mb = (info.totalram * info.mem_unit) / (1024 * 1024);
+    }
+
+    std::ifstream cpu_file("/proc/cpuinfo");
+    while (std::getline(cpu_file, line)) {
+        if (line.find("model name") != std::string::npos) {
+            specs.cpu_model = line.substr(line.find(":") + 2);
+            break;
+        }
+    }
+
+    std::string gpu = exec_cmd("lspci | grep -i 'vga\\|3d\\|display'");
+    if (!gpu.empty()) specs.gpu_model = gpu;
+
+#endif
+
+    // Calculate dynamic training score (Simplified)
+    if (specs.total_ram_mb > 16000) specs.training_score = 0.9f;
+    else if (specs.total_ram_mb > 8000) specs.training_score = 0.7f;
+    else specs.training_score = 0.4f;
+
+    return specs;
 }
 
 } // namespace emotion

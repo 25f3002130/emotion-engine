@@ -6,6 +6,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
 #include <QtCore/QDateTime>
+#include <QtCore/QTimer>
 
 namespace emotion {
 
@@ -24,6 +25,8 @@ DashboardPanel::DashboardPanel(const std::vector<ModelInfo>& models, QWidget *pa
     waveTimer = new QTimer(this);
     connect(waveTimer, &QTimer::timeout, this, &DashboardPanel::updateWaveform);
     waveTimer->start(30);
+    
+    isTraining = false;
 }
 
 void DashboardPanel::setupUI() {
@@ -55,7 +58,7 @@ QWidget* DashboardPanel::createHeader() {
     l->setContentsMargins(0, 0, 0, 10);
 
     QLabel *title = new QLabel("TRAINING HUB");
-    title->setStyleSheet("font-size: 20px; font-weight: bold; color: #ffffff; letter-spacing: 2px; border:none;");
+    title->setStyleSheet("font-size: 20px; font-weight: 900; color: #ffffff; letter-spacing: 2px; border:none;");
     l->addWidget(title);
     l->addSpacing(30);
 
@@ -90,7 +93,7 @@ QFrame* DashboardPanel::createModelSelector(const std::vector<ModelInfo>& models
     QVBoxLayout *l = new QVBoxLayout(f);
 
     QLabel *title = new QLabel("SELECT AI MODEL");
-    title->setStyleSheet("font-weight: bold; font-size: 12px; color: #ffffff; border: none; margin-bottom: 5px;");
+    title->setStyleSheet("font-weight: 900; font-size: 12px; color: #ffffff; border: none; margin-bottom: 5px;");
     l->addWidget(title);
     
     if (models.empty()) {
@@ -98,7 +101,8 @@ QFrame* DashboardPanel::createModelSelector(const std::vector<ModelInfo>& models
         empty->setStyleSheet("color: #938f99; font-size: 10px; border: none; margin-top: 10px;");
         l->addWidget(empty);
         
-        QLabel *link = new QLabel("<a href='https://github.com/dialgga/emotion-engine' style='color: #cfbcff; text-decoration: none;'>Download models from GitHub Documentation</a>");
+        QString wikiUrl = "https://github.com/25f3002130/emotion-engine/wiki/Dowload-LLM-Models-for-your-emotion-engine";
+        QLabel *link = new QLabel(QString("<a href='%1' style='color: #cfbcff; text-decoration: none;'>Download models from GitHub Documentation</a>").arg(wikiUrl));
         link->setStyleSheet("font-size: 10px; border: none;");
         link->setOpenExternalLinks(true);
         l->addWidget(link);
@@ -106,7 +110,6 @@ QFrame* DashboardPanel::createModelSelector(const std::vector<ModelInfo>& models
         auto createCard = [](const ModelInfo& model, bool active) {
             QFrame *c = new QFrame();
             c->setFixedHeight(55);
-            QString border = active ? "1px solid #cfbcff" : "1px solid #25232a";
             applyGlow(c, active ? QColor("#cfbcff") : QColor("#25232a"), 15);
 
             QHBoxLayout *cl = new QHBoxLayout(c);
@@ -117,7 +120,7 @@ QFrame* DashboardPanel::createModelSelector(const std::vector<ModelInfo>& models
             
             QVBoxLayout *vl = new QVBoxLayout();
             QLabel *n = new QLabel(QString::fromStdString(model.name));
-            n->setStyleSheet("font-weight: bold; font-size: 11px; color: #ffffff; border: none; background: transparent;");
+            n->setStyleSheet("font-weight: 900; font-size: 11px; color: #ffffff; border: none; background: transparent;");
             QLabel *d = new QLabel(QString::fromStdString(model.description));
             d->setStyleSheet("font-size: 8px; color: #938f99; border: none; text-transform: uppercase; background: transparent;");
             vl->addWidget(n);
@@ -138,7 +141,7 @@ QFrame* DashboardPanel::createModelSelector(const std::vector<ModelInfo>& models
     l->addStretch();
     
     QLabel *readiness = new QLabel("Model Readiness 84%");
-    readiness->setStyleSheet("font-size: 9px; color: #938f99; font-weight: bold; border: none;");
+    readiness->setStyleSheet("font-size: 9px; color: #938f99; font-weight: 900; border: none;");
     l->addWidget(readiness);
     QProgressBar *pb = new QProgressBar();
     pb->setRange(0, 100);
@@ -205,7 +208,7 @@ QFrame* DashboardPanel::createEmotionLibrary() {
         return c;
     };
 
-    grid->addWidget(createCard("🥀", "Pain", "PENDING", "Fundamental neural distress and survival feedback.", "#ff4d4d"), 0, 0); // Neon Red
+    grid->addWidget(createCard("🥀", "Pain", "PENDING", "Fundamental neural distress and survival feedback.", "#ff4d4d"), 0, 0); 
     grid->addWidget(createCard("♡", "Empathy", "LOCKED", "Recursive emotional resonance and shared perspective.", "#bf5af2"), 0, 1);
     grid->addWidget(createCard("☀", "Joy", "LOCKED", "High-valence, high-arousal positive affectation.", "#ffcc00"), 1, 0);
     grid->addWidget(createCard("☁", "Melancholy", "LOCKED", "Reflective sadness with a core of aesthetic appreciation.", "#313033"), 1, 1);
@@ -266,18 +269,18 @@ QFrame* DashboardPanel::createWaveformPreview() {
     l->setContentsMargins(15, 15, 15, 15);
 
     QLabel *title = new QLabel("NEURAL WAVEFORM PREVIEW");
-    title->setStyleSheet("font-weight: bold; font-size: 9px; color: #938f99; border: none;");
+    title->setStyleSheet("font-weight: 900; font-size: 9px; color: #938f99; border: none;");
     l->addWidget(title);
     
     waveformCanvas = new QFrame();
     waveformCanvas->setMinimumHeight(100);
     waveformCanvas->setStyleSheet("border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; background-color: #0d0c10;");
     
-    QVBoxLayout *cl = new QVBoxLayout(waveformCanvas);
-    QLabel *msg = new QLabel("START TRAINING A MODEL TO\nSEE THE NEURAL PREVIEW");
-    msg->setAlignment(Qt::AlignCenter);
-    msg->setStyleSheet("color: #49454f; font-weight: bold; font-size: 10px; border: none; background: transparent; letter-spacing: 1px;");
-    cl->addWidget(msg);
+    previewMsgLayout = new QVBoxLayout(waveformCanvas);
+    previewMsg = new QLabel("START TRAINING A MODEL TO\nSEE THE NEURAL PREVIEW");
+    previewMsg->setAlignment(Qt::AlignCenter);
+    previewMsg->setStyleSheet("color: #49454f; font-weight: 900; font-size: 10px; border: none; background: transparent; letter-spacing: 1px;");
+    previewMsgLayout->addWidget(previewMsg);
     
     l->addWidget(waveformCanvas);
     
@@ -289,7 +292,6 @@ QFrame* DashboardPanel::createSummaryCard() {
     f->setStyleSheet("background-color: #141218; border: 1px solid #25232a; border-radius: 12px; padding: 15px;");
     QVBoxLayout *l = new QVBoxLayout(f);
 
-    // Info Box (Yellow Highlighted)
     QFrame *infoBox = new QFrame();
     infoBox->setStyleSheet("background-color: rgba(231, 195, 101, 0.05); border: 1px solid #e7c365; border-radius: 8px; padding: 10px;");
     applyGlow(infoBox, QColor("#e7c365"), 15);
@@ -299,7 +301,6 @@ QFrame* DashboardPanel::createSummaryCard() {
     icon->setStyleSheet("color: #e7c365; font-size: 18px; border: none; background: transparent; font-weight: bold;");
     il->addWidget(icon);
     
-    // Dynamic logic based on hardware
     HardwareSpecs hw = HardwareMonitor::scan();
     int cycles = 30 - (hw.training_score * 20);
     float memory = 2.0f + (hw.total_ram_mb / 4096.0f);
@@ -317,6 +318,7 @@ QFrame* DashboardPanel::createSummaryCard() {
     QPushButton *startBtn = new QPushButton("START TRAINING PHASE →");
     startBtn->setFixedHeight(40);
     startBtn->setStyleSheet("background-color: #cfbcff; color: #381e72; border-radius: 6px; font-weight: bold; border:none; font-size: 10px;");
+    connect(startBtn, &QPushButton::clicked, this, &DashboardPanel::onStartTraining);
     l->addWidget(startBtn);
 
     return f;
@@ -333,14 +335,31 @@ QFrame* DashboardPanel::createTerminal() {
     terminalOutput->setReadOnly(true);
     terminalOutput->setStyleSheet("background-color: transparent; border: none; color: #2dd4bf; font-family: 'JetBrains Mono', monospace; font-size: 9px;");
     
-    QString ts = QDateTime::currentDateTime().toString("hh:mm:ss");
-    terminalOutput->append(QString("<span style='color:#938f99'>[%1]</span> <span style='color:#cfbcff'>[SYSTEM]</span> SENTI-9 kernel verified. Handshake success.").arg(ts));
-    terminalOutput->append(QString("<span style='color:#938f99'>[%1]</span> <span style='color:#2dd4bf'>[NEURAL]</span> Pre-requisite check for 'Empathy' initiated...").arg(ts));
-    terminalOutput->append(QString("<span style='color:#938f99'>[%1]</span> <span style='color:#2dd4bf'>[NEURAL]</span> Recognition module: <span style='color:#ffffff'>OPTIMAL (0.992 fidelity)</span>").arg(ts));
-    terminalOutput->append(QString("<span style='color:#938f99'>[%1]</span> <span style='color:#e7c365'>[WAIT]</span> Awaiting user initialization signal...").arg(ts));
-
     l->addWidget(terminalOutput);
     return f;
+}
+
+void DashboardPanel::onStartTraining() {
+    if (isTraining) return;
+    isTraining = true;
+
+    // Clear and pop logs
+    terminalOutput->clear();
+    QString ts = QDateTime::currentDateTime().toString("hh:mm:ss");
+    
+    auto addLog = [&](const QString& type, const QString& msg, const QString& color) {
+        terminalOutput->append(QString("<span style='color:#938f99'>[%1]</span> <span style='color:%3'>[%2]</span> %4")
+            .arg(ts).arg(type).arg(color).arg(msg));
+    };
+
+    addLog("SYSTEM", "SENTI-9 kernel verified. Handshake success.", "#cfbcff");
+    addLog("NEURAL", "Pre-requisite check for 'Pain' initiated...", "#2dd4bf");
+    addLog("NEURAL", "Recognition module: <span style='color:#ffffff'>OPTIMAL (0.992 fidelity)</span>", "#2dd4bf");
+    addLog("SYNC", "Injecting '🥀 PAIN' neural vectors into local LLM weights.", "#bf5af2");
+    addLog("PROCESS", "Training cycles active. Monitoring hardware telemetry...", "#ffcc00");
+
+    // Hide preview message
+    previewMsg->hide();
 }
 
 void DashboardPanel::updateWaveform() {
@@ -349,22 +368,25 @@ void DashboardPanel::updateWaveform() {
 }
 
 void DashboardPanel::paintEvent(QPaintEvent *) {
-    // Only paint waves if training is "simulated" to be active
-    // For now, let's keep it simple - we'll show faint waves
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
     QPoint globalPos = waveformCanvas->mapTo(this, QPoint(0, 0));
     QRect rect(globalPos, waveformCanvas->size());
 
-    painter.setPen(QPen(QColor(207, 188, 255, 30), 1)); // Very faint when idle
+    // Only show waves if training is active
+    if (isTraining) {
+        painter.setPen(QPen(QColor(207, 188, 255, 180), 2));
+    } else {
+        painter.setPen(QPen(QColor(207, 188, 255, 30), 1));
+    }
     
     QPainterPath path;
     int centerY = rect.center().y();
     path.moveTo(rect.left(), centerY);
     
     for (int x = rect.left(); x < rect.right(); ++x) {
-        float y = centerY + std::sin((x * 0.05f) + waveOffset) * 10.0f;
+        float y = centerY + std::sin((x * 0.05f) + waveOffset) * (isTraining ? 15.0f : 5.0f);
         path.lineTo(x, y);
     }
     painter.drawPath(path);

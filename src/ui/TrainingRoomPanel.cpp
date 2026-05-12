@@ -101,10 +101,8 @@ TrainingRoomPanel::createModelSelector(const std::vector<ModelInfo> &models) {
         "color: #938f99; font-size: 10px; border: none; margin-top: 10px;");
     l->addWidget(empty);
 
-    QLabel *link = new QLabel(
-        "<a href='https://github.com/25f3002130/emotion-engine/wiki' "
-        "style='color: #cfbcff; text-decoration: none;'>Download models from "
-        "GitHub Documentation</a>");
+    QString wikiUrl = "https://github.com/25f3002130/emotion-engine/wiki/Dowload-LLM-Models-for-your-emotion-engine";
+    QLabel *link = new QLabel(QString("<a href='%1' style='color: #cfbcff; text-decoration: none;'>Download models from GitHub Documentation</a>").arg(wikiUrl));
     link->setStyleSheet("font-size: 10px; border: none;");
     link->setOpenExternalLinks(true);
     l->addWidget(link);
