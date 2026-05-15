@@ -42,6 +42,7 @@ private:
 
   // Dynamic Training State
   bool isTraining;
+  int currentSelectedModel = -1;
   QFrame *waveformCanvas;
   QLabel *previewMsg;
   QVBoxLayout *previewMsgLayout;

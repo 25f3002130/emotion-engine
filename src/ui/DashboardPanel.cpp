@@ -12,7 +12,7 @@
 namespace emotion {
 
 // Helper to apply a vibrant glow effect
-void applyGlow(QWidget *w, const QColor &color, int strength = 15) {
+void applyGlow(QWidget *w, const QColor &color, int strength = 8) {
   auto *glow = new QGraphicsDropShadowEffect(w);
   glow->setBlurRadius(strength);
   glow->setColor(color);
@@ -29,6 +29,9 @@ DashboardPanel::DashboardPanel(const std::vector<ModelInfo> &models,
   waveTimer->start(30);
 
   isTraining = false;
+  if (!availableModels.empty()) {
+    currentSelectedModel = 0;
+  }
 }
 
 void DashboardPanel::setupUI() {
@@ -161,25 +164,28 @@ DashboardPanel::createModelSelector(const std::vector<ModelInfo> &models) {
 
       // Text Area
       QVBoxLayout *tl = new QVBoxLayout();
-      tl->setContentsMargins(0, 5, 0, 5);
+      tl->setContentsMargins(10, 5, 10, 5);
       tl->setSpacing(2);
       tl->addStretch();
 
       QLabel *name = new QLabel(QString::fromStdString(model.name).toUpper());
-      name->setWordWrap(true);
-      name->setStyleSheet("font-weight: bold; font-size: 10px; color: white; "
+      name->setStyleSheet("font-weight: bold; font-size: 11px; color: white; "
                           "border: none; background: transparent;");
       tl->addWidget(name);
 
       QString statusText = model.is_experimental ? "EXPERIMENTAL ALPHA"
                                                  : "LATEST STABLE BUILD";
-      if (model.name == "SENTI-9") {
-        statusText = "EMOTIONAL INTELLIGENCE";
+      if (model.maturity >= 1.0f) {
+        statusText = "EMOTIONAL INTELLIGENCE: MAXIMIZED";
+      } else if (model.maturity > 0.0f) {
+        statusText =
+            QString("NEURAL EVOLUTION: %1%").arg((int)(model.maturity * 100));
       }
 
       QLabel *desc = new QLabel(statusText);
       desc->setStyleSheet("font-size: 9px; color: #938f99; text-transform: "
-                          "uppercase; border: none; background: transparent;");
+                          "uppercase; border: none; background: transparent; "
+                          "letter-spacing: 1px;");
       tl->addWidget(desc);
       tl->addStretch();
       cl->addLayout(tl, 1);
@@ -246,7 +252,7 @@ QFrame *DashboardPanel::createEmotionLibrary() {
     QVBoxLayout *cl = new QVBoxLayout(c);
 
     if (!locked)
-      applyGlow(c, baseColor, 20);
+      applyGlow(c, baseColor, 10);
 
     QHBoxLayout *hl = new QHBoxLayout();
     QLabel *ic = new QLabel(icon);
@@ -355,9 +361,14 @@ QFrame *DashboardPanel::createPrerequisites() {
     l->addWidget(row);
   };
 
-  addRow("🔘", "Recognition", "CALIBRATED", "#00ffd5", false);
-  addRow("🔘", "Tone Sensitivity", "CALIBRATED", "#00ffd5", false);
-  addRow("🔒", "Abstract Context", "OPTIONAL", "#49454f", true);
+  // Dynamic training status from model metadata
+  bool modelSelected = (currentSelectedModel != -1);
+  const ModelInfo *m =
+      modelSelected ? &availableModels[currentSelectedModel] : nullptr;
+
+  addRow("🔘", "Recognition", m && m->prerequisites.recognition == 2 ? "CALIBRATED" : "PENDING", "#cfbcff", !m || m->prerequisites.recognition < 2);
+  addRow("🔘", "Tone Sensitivity", m && m->prerequisites.tone_sensitivity == 2 ? "CALIBRATED" : "PENDING", "#2dd4bf", !m || m->prerequisites.tone_sensitivity < 2);
+  addRow("🔒", "Abstract Context", m && m->prerequisites.abstract_context == 2 ? "CALIBRATED" : "PENDING", "#49454f", !m || m->prerequisites.abstract_context < 2);
 
   return f;
 }
@@ -381,7 +392,7 @@ QFrame *DashboardPanel::createWaveformPreview() {
       "background-color: #0d0c10;");
 
   previewMsgLayout = new QVBoxLayout(waveformCanvas);
-  previewMsg = new QLabel("START TRAINING A MODEL TO\nSEE THE NEURAL PREVIEW");
+  previewMsg = new QLabel("start training the model to see the waveform");
   previewMsg->setAlignment(Qt::AlignCenter);
   previewMsg->setStyleSheet(
       "color: #49454f; font-weight: 900; font-size: 10px; border: none; "
@@ -403,7 +414,7 @@ QFrame *DashboardPanel::createSummaryCard() {
   infoBox->setStyleSheet(
       "background-color: rgba(231, 195, 101, 0.05); border: 1px solid #e7c365; "
       "border-radius: 8px; padding: 10px;");
-  applyGlow(infoBox, QColor("#e7c365"), 15);
+  applyGlow(infoBox, QColor("#e7c365"), 5);
   QHBoxLayout *il = new QHBoxLayout(infoBox);
 
   QLabel *icon = new QLabel("ⓘ");

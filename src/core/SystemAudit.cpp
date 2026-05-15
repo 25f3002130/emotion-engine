@@ -1,5 +1,6 @@
 #include "core/SystemAudit.h"
 #include "core/Logger.h"
+#include "core/PersistenceEngine.h"
 #include <filesystem>
 #include <iostream>
 #include <fstream>
@@ -70,6 +71,9 @@ std::vector<ModelInfo> SystemAudit::discoverModels() {
                         info.description = "Found in: " + entry.path().parent_path().filename().string();
                         info.is_experimental = (info.name.find("exp") != std::string::npos);
                         
+                        // Load persistent state
+                        PersistenceEngine::getInstance().loadMetadata(info);
+                        
                         LOG_INFO("[SCAN] Indexed Model: " + info.name + " (" + ext + ")");
                         models.push_back(info);
                     }
@@ -102,6 +106,8 @@ std::vector<ModelInfo> SystemAudit::discoverModels() {
                             info.path = sub.path().string();
                             info.description = "Ollama Library";
                             info.is_experimental = false;
+                            
+                            PersistenceEngine::getInstance().loadMetadata(info);
                             models.push_back(info);
                         }
                     }

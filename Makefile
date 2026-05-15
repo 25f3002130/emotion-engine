@@ -9,11 +9,11 @@ MOC_DIR = $(BUILD_DIR)/moc
 
 # Core Sources
 CORE_SOURCES = src/training/TrainingManager.cpp \
-               src/models/SENTI9.cpp \
+               src/models/NeuralModel.cpp \
                src/emotions/EmotionProcessor.cpp \
                src/core/Logger.cpp \
                src/core/Config.cpp \
-               src/core/DataManager.cpp \
+               src/core/PersistenceEngine.cpp \
                src/core/HardwareMonitor.cpp \
                src/core/SystemAudit.cpp
 
@@ -21,7 +21,8 @@ CORE_SOURCES = src/training/TrainingManager.cpp \
 UI_HEADERS = include/ui/MainWindow.h \
              include/ui/DashboardPanel.h \
              include/ui/TrainingRoomPanel.h \
-             include/ui/LogsMatrixPanels.h \
+             include/ui/EvolutionLogsPanel.h \
+             include/ui/EmotionMatrixPanel.h \
              include/ui/SplashScreen.h \
              include/ui/EmotionSelectorDialog.h
 
@@ -29,6 +30,8 @@ UI_HEADERS = include/ui/MainWindow.h \
 UI_SOURCES = src/ui/MainWindow.cpp \
              src/ui/DashboardPanel.cpp \
              src/ui/TrainingRoomPanel.cpp \
+             src/ui/EvolutionLogsPanel.cpp \
+             src/ui/EmotionMatrixPanel.cpp \
              src/ui/SplashScreen.cpp \
              src/ui/EmotionSelectorDialog.cpp \
              src/main.cpp

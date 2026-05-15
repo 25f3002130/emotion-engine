@@ -7,11 +7,22 @@
 
 namespace emotion {
 
+struct ModelPrerequisites {
+    int recognition = 0;       // 0: Missing, 1: Low, 2: Calibrated
+    int tone_sensitivity = 0;
+    int abstract_context = 0;
+};
+
 struct ModelInfo {
     std::string name;
     std::string path;
     std::string description;
     bool is_experimental;
+    
+    // Persistent Stats
+    float maturity = 0.0f;
+    int training_cycles = 0;
+    ModelPrerequisites prerequisites;
 };
 
 struct AuditResult {

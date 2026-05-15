@@ -1,6 +1,8 @@
 #include "ui/MainWindow.h"
 #include "ui/DashboardPanel.h"
 #include "ui/TrainingRoomPanel.h"
+#include "ui/EvolutionLogsPanel.h"
+#include "ui/EmotionMatrixPanel.h"
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QPushButton>
@@ -105,11 +107,15 @@ void MainWindow::setupUI() {
     // --- CONTENT AREA ---
     stack = new QStackedWidget();
     dashPanel = new DashboardPanel(discoveredModels);
-    trainPanel = new TrainingRoomPanel(discoveredModels); // Keep it for now, or replace later
+    trainPanel = new TrainingRoomPanel(discoveredModels);
+    evolutionPanel = new EvolutionLogsPanel();
+    matrixPanel = new EmotionMatrixPanel();
     
     stack->addWidget(dashPanel);
     stack->addWidget(trainPanel);
-    stack->setCurrentIndex(0); // Launch directly into the Dashboard (Training Hub)
+    stack->addWidget(evolutionPanel);
+    stack->addWidget(matrixPanel);
+    stack->setCurrentIndex(0);
 
     mainLayout->addWidget(stack);
 }

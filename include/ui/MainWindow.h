@@ -5,6 +5,8 @@
 #include <QtWidgets/QStackedWidget>
 #include "ui/DashboardPanel.h"
 #include "ui/TrainingRoomPanel.h"
+#include "ui/EvolutionLogsPanel.h"
+#include "ui/EmotionMatrixPanel.h"
 #include "core/SystemAudit.h"
 
 namespace emotion {
@@ -21,6 +23,8 @@ private:
     QStackedWidget *stack;
     DashboardPanel *dashPanel;
     TrainingRoomPanel *trainPanel;
+    EvolutionLogsPanel *evolutionPanel;
+    EmotionMatrixPanel *matrixPanel;
     std::vector<ModelInfo> discoveredModels;
 };
 
