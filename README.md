@@ -87,12 +87,4 @@ To launch the Emotion Engine and verify the system:
    ```
 3. **Verify UI**: The native desktop window should appear with the "DASHBOARD" view active.
 4. **Test Navigation**: Click through the sidebar items (Dashboard, Training Room, etc.) to verify panel switching.
-
----
-
-## 👨‍💻 Authors
-
-- **Project Lead**: Aditya Raj
-- **Contributors**: Meet Prajapati, Pranav Patel
-
 *Emotion Engine: Where AI learns to feel.*
