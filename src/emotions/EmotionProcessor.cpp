@@ -10,17 +10,13 @@ EmotionProcessor::EmotionProcessor() {
 
 EmotionVector EmotionProcessor::processInput(const std::string& input) {
     LOG_DEBUG("Processing input: " + input);
-    
-    // Placeholder for actual NLP/Sentiment analysis logic
-    // For now, return a neutral-to-positive vector
     return EmotionVector(0.7f, 0.6f, 0.5f, 0.8f, 0.4f);
 }
 
 float EmotionProcessor::calculateEmpathy(const EmotionVector& a, const EmotionVector& b) {
-    // Simple cosine similarity or Euclidean distance based empathy score
     float diff = std::abs(a.empathy - b.empathy) + 
                  std::abs(a.serenity - b.serenity);
     return std::max(0.0f, 1.0f - (diff / 2.0f));
 }
 
-} // namespace emotion
+} 
