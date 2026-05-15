@@ -1,7 +1,7 @@
 # EMOTION ENGINE v4.0.2
 ## Advanced AI Emotional Intelligence Training Platform
 
-![Version](https://img.shields.io/badge/version-4.0.2-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Status](https://img.shields.io/badge/status-Operational-brightgreen)
 ![Language](https://img.shields.io/badge/language-C%2B%2B-red)
 ![UI](https://img.shields.io/badge/UI-Qt6-purple)
